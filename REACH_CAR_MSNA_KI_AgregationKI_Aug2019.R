@@ -173,34 +173,33 @@ lcs_decideType <- function(x, type) {
   }
 }
 
-# Aggregating most recent choices
-aok_recent <- function(x) {
-  if ("1_mois" %in% x) {
-    return("1_mois")
+#Aggregating function to pick most grave statisfaction
+aok_satisf <- function(x){
+  if("pas suffisant du tout" %in% x) {
+    return("pas suffisant du tout")
   }
-  else if("1_3_mois" %in% x) {
-    return("1_3_mois")
+  else if("insuffisant" %in% x) {
+    return("insuffisant")
   }
-  else if("3_5_mois" %in% x) {
-    return("3_5_mois")
+  else if("juste assez" %in% x) {
+    return("non_pas_besoin")
   }
-  else if("5_12_mois" %in% x) {
-    return("5_12_mois")
+  else if("suffisant" %in% x) {
+    return("suffisant")
   }
-  else if("12_mois_ou_plus" %in% x) {
-    return("12_mois_ou_plus")
-  }
-  else if("nsp" %in% x) {
-    return("nsp")
+  else if("plus_que_suffisant" %in% x) {
+    return("plus_que_suffisant")
   }
   else {
     return("")
   }
-  
 }
 
 # Function to decide how the ties are dealt with between type of respondents.
-recent_decideType <- function(x, type) {
+## Inhabitants of villages (habitant) take over all other
+## Direct contacts takes over other types
+## Remote contact and others (autre) are last
+satisf_decideType <- function(x, type) {
   ux <- unique(x[!is.na(x)])
   utype <- unique(type[!is.na(type)])
   
@@ -208,17 +207,18 @@ recent_decideType <- function(x, type) {
   if (length(which(tabulate(match(x, ux)) == max(tabulate(match(x, ux))))) > 1) {
     tab <- tabulate(match(type, utype))
     if("habitant" %in% utype[tab == max(tab)]){
-      aok_recent(filter(data.frame(x, type), type == "habitant") %>% select(x))
+      aok_satisf(filter(data.frame(x, type), type == "habitant") %>% select(x))
     }else if("direct_contact" %in% utype[tab == max(tab)]){
-      aok_recent(filter(data.frame(x, type), type == "direct_contact") %>% select(x))
+      aok_satisf(filter(data.frame(x, type), type == "direct_contact") %>% select(x))
     }else{
-      aok_recent(filter(data.frame(x, type), type %in% c("remote_contact", "autre")) %>% select(x))
+      aok_satisf(filter(data.frame(x, type), type %in% c("remote_contact", "autre")) %>% select(x))
     }
   }
   else {
-    aok_recent(x) ## This occurs if no tie, so we return the value which has max value! Wambam.
+    aok_satisf(x) ## This occurs if no tie, so we return the value which has max value! Wambam.
   }
 }
+
 
 # Function to decide how the ties are dealt with between type of respondents.
 integer_decideType <- function(x, type) {
@@ -279,7 +279,7 @@ loc_Oui <- d_f %>%
 
 # always no question
 ques_non <- c("mssc_8_acces_agri",
-              "wash_5_1_acces_boire","wash_5_2_acces_cuisiner","wash_5_3_acces_hygiene","wash_6_assez_eau")
+              "wash_5_1_acces_boire","wash_5_2_acces_cuisiner","wash_5_3_acces_hygiene")
 
 loc_Non <- d_f%>%
   select(ques_loc,ques_non, type_contact )%>%
@@ -296,12 +296,13 @@ loc_lcs <- d_f %>%
   group_by(info_prefecture,info_sous_prefecture, info_commune, info_loc_H2R)%>%
   summarize_all(lcs_decideType, type = quo(type_contact))
 
-# Recent questions
-loc_recent <- d_f %>%
-  select(info_prefecture,info_sous_prefecture, info_commune, info_loc_H2R,
-         ig_4_IDP_length_IDP, type_contact)%>%
+ques_satisf <- c("wash_6_assez_eau", "sante_8_services_sante")
+
+#Satisfaction question
+loc_satisf <- d_f %>%
+  select(ques_loc,ques_satisf, type_contact)%>%
   group_by(info_prefecture,info_sous_prefecture, info_commune, info_loc_H2R)%>%
-  summarize_all(recent_decideType, type = quo(type_contact))
+  summarize_all(satisf_decideType, type = quo(type_contact))
 
 # Identifying integer
 integer_ques <- form_survey[form_survey$type %in% c("integer", "decimal", "calculate"),"name"]
@@ -312,7 +313,7 @@ loc_integer <- d_f%>%
   summarize_all(integer_decideType, type = quo(type_contact))
 
 # Already analysed columns
-dejaTraite_col <- unique(c(names(loc_recent), names(loc_lcs), names(loc_Oui), names(loc_Non), names(loc_integer)))
+dejaTraite_col <- unique(c( names(loc_satisf), names(loc_lcs), names(loc_Oui), names(loc_Non), names(loc_integer)))
 dejaTraite_col <- dejaTraite_col[5:length(dejaTraite_col)]
 
 # Identifying all equal questions 
@@ -327,12 +328,11 @@ loc_egual <- d_f %>%
         
 # Aggregating all frames
 loc_aggregated <- loc_egual%>%
+  left_join(loc_satisf, by = c ("info_prefecture","info_sous_prefecture", "info_commune", "info_loc_H2R"))%>%
   left_join(loc_integer, by = c ("info_prefecture","info_sous_prefecture", "info_commune", "info_loc_H2R"))%>%
   left_join(loc_lcs, by = c ("info_prefecture","info_sous_prefecture", "info_commune", "info_loc_H2R"))%>%
   left_join(loc_Non, by = c ("info_prefecture","info_sous_prefecture", "info_commune", "info_loc_H2R"))%>%
   left_join(loc_Oui, by = c ("info_prefecture","info_sous_prefecture", "info_commune", "info_loc_H2R"))%>%
-  left_join(loc_recent, by = c ("info_prefecture","info_sous_prefecture", "info_commune", "info_loc_H2R"))%>%
   select(base_colOrder)
-
 
 write.csv(loc_aggregated, AGGREGATED_DATASET)
