@@ -17,6 +17,12 @@ aok_oui <- function(x) {
   else if("non" %in% x) {
     return("non")
   }
+  else if("nsp" %in% x) {
+    return("nsp")
+  }
+  else if("n/a" %in% x) {
+    return("n/a")
+  }
   else {
     return("")
   }
@@ -55,7 +61,12 @@ aok_non <- function(x) {
   else if("oui" %in% x) {
     return("oui")
   }
-  
+  else if("nsp" %in% x) {
+    return("nsp")
+  }
+  else if("n/a" %in% x) {
+    return("n/a")
+  }
   else {
     return("")
   }
@@ -80,6 +91,7 @@ non_decideType <- function(x, type) {
       aok_non(filter(data.frame(x, type), type %in% c("remote_contact", "autre")) %>% select(x))
     }
   }
+  
   else {
     aok_non(x) ## This occurs if no tie, so we return the value which has max value! Wambam.
   }
@@ -99,6 +111,12 @@ aok_mode <- function(x) {
     else {
       return("NC")
     }
+  }
+  else if("nsp" %in% x) {
+    return("nsp")
+  }
+  else if("n/a" %in% x) {
+    return("n/a")
   }
   else {
     ux[which.max(tabulate(match(x, ux)))] ## This occurs if no tie, so we return the value which has max value! Wambam.
@@ -144,6 +162,18 @@ aok_lcs <- function(x){
   else if("non_pertinent" %in% x) {
     return("non_pertinent")
   }
+  else if("nsp" %in% x) {
+    return("nsp")
+  }
+  else if("n/a" %in% x) {
+    return("non_pertinent")
+  }
+  else if("nsp" %in% x) {
+    return("nsp")
+  }
+  else if("n/a" %in% x) {
+    return("n/a")
+  }
   else {
     return("")
   }
@@ -161,15 +191,15 @@ lcs_decideType <- function(x, type) {
   if (length(which(tabulate(match(x, ux)) == max(tabulate(match(x, ux))))) > 1) {
     tab <- tabulate(match(type, utype))
     if("habitant" %in% utype[tab == max(tab)]){
-      aok_non(filter(data.frame(x, type), type == "habitant") %>% select(x))
+      aok_lcs(filter(data.frame(x, type), type == "habitant") %>% select(x))
     }else if("direct_contact" %in% utype[tab == max(tab)]){
-      aok_non(filter(data.frame(x, type), type == "direct_contact") %>% select(x))
+      aok_lcs(filter(data.frame(x, type), type == "direct_contact") %>% select(x))
     }else{
-      aok_non(filter(data.frame(x, type), type %in% c("remote_contact", "autre")) %>% select(x))
+      aok_lcs(filter(data.frame(x, type), type %in% c("remote_contact", "autre")) %>% select(x))
     }
   }
   else {
-    aok_non(x) ## This occurs if no tie, so we return the value which has max value! Wambam.
+    aok_lcs(x) ## This occurs if no tie, so we return the value which has max value! Wambam.
   }
 }
 
@@ -189,6 +219,12 @@ aok_satisf <- function(x){
   }
   else if("plus_que_suffisant" %in% x) {
     return("plus_que_suffisant")
+  }
+  else if("nsp" %in% x) {
+    return("nsp")
+  }
+  else if("n/a" %in% x) {
+    return("n/a")
   }
   else {
     return("")
@@ -233,6 +269,12 @@ aok_prop <- function(x){
   else if("quelques" %in% x) {
     return("quelques")
   }
+  else if("nsp" %in% x) {
+    return("nsp")
+  }
+  else if("n/a" %in% x) {
+    return("n/a")
+  }
   else {
     return("")
   }
@@ -250,11 +292,11 @@ prop_decideType <- function(x, type) {
   if (length(which(tabulate(match(x, ux)) == max(tabulate(match(x, ux))))) > 1) {
     tab <- tabulate(match(type, utype))
     if("habitant" %in% utype[tab == max(tab)]){
-      aok_satisf(filter(data.frame(x, type), type == "habitant") %>% select(x))
+      aok_prop(filter(data.frame(x, type), type == "habitant") %>% select(x))
     }else if("direct_contact" %in% utype[tab == max(tab)]){
-      aok_satisf(filter(data.frame(x, type), type == "direct_contact") %>% select(x))
+      aok_prop(filter(data.frame(x, type), type == "direct_contact") %>% select(x))
     }else{
-      aok_satisf(filter(data.frame(x, type), type %in% c("remote_contact", "autre")) %>% select(x))
+      aok_prop(filter(data.frame(x, type), type %in% c("remote_contact", "autre")) %>% select(x))
     }
   }
   else {
