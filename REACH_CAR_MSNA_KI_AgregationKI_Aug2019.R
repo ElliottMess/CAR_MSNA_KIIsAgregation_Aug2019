@@ -2,7 +2,7 @@ library(dplyr)
 library(tibble)
 
 #Where the files are
-CLEANED_DATASET <- paste0("input/MSNA_H2R_datasetCleanded_290819.csv")
+CLEANED_DATASET <- paste0("input/MSNA_H2R_dataset_100919.csv")
 FORM_SURVEY <- paste0("input/Questionnaire_Kobo__MSNA_ki_MF_MP_1108 - FINAL_v2_survey.csv")
 AGGREGATED_DATASET <- paste0("output/REACH_CAR_MSNA_AggregatedKIs_cleanedData.csv")
 
@@ -219,6 +219,48 @@ satisf_decideType <- function(x, type) {
   }
 }
 
+#Aggregating function to pick most grave statisfaction
+aok_prop <- function(x){
+  if("majorite" %in% x) {
+    return("majorite")
+  }
+  else if("plus_moitie" %in% x) {
+    return("plus_moitie")
+  }
+  else if("moins_moitie" %in% x) {
+    return("moins_moitie")
+  }
+  else if("quelques" %in% x) {
+    return("quelques")
+  }
+  else {
+    return("")
+  }
+}
+
+# Function to decide how the ties are dealt with between type of respondents.
+## Inhabitants of villages (habitant) take over all other
+## Direct contacts takes over other types
+## Remote contact and others (autre) are last
+prop_decideType <- function(x, type) {
+  ux <- unique(x[!is.na(x)])
+  utype <- unique(type[!is.na(type)])
+  
+  # This checks to see if we have more than one mode (a tie), return blank if so.
+  if (length(which(tabulate(match(x, ux)) == max(tabulate(match(x, ux))))) > 1) {
+    tab <- tabulate(match(type, utype))
+    if("habitant" %in% utype[tab == max(tab)]){
+      aok_satisf(filter(data.frame(x, type), type == "habitant") %>% select(x))
+    }else if("direct_contact" %in% utype[tab == max(tab)]){
+      aok_satisf(filter(data.frame(x, type), type == "direct_contact") %>% select(x))
+    }else{
+      aok_satisf(filter(data.frame(x, type), type %in% c("remote_contact", "autre")) %>% select(x))
+    }
+  }
+  else {
+    aok_prop(x) ## This occurs if no tie, so we return the value which has max value! Wambam.
+  }
+}
 
 # Function to decide how the ties are dealt with between type of respondents.
 integer_decideType <- function(x, type) {
@@ -240,7 +282,7 @@ integer_decideType <- function(x, type) {
 }
 
 #Reading data and form
-d_f <- read.delim(CLEANED_DATASET, sep= ";", stringsAsFactors = FALSE, skipNul = TRUE)
+d_f <- read.csv(CLEANED_DATASET, stringsAsFactors = FALSE, skipNul = TRUE)
 form_survey <- read.delim(FORM_SURVEY, sep= ";", stringsAsFactors = FALSE, skipNul = TRUE)
 
 #removing "other" (autre) columns
@@ -268,7 +310,7 @@ ques_Oui <- c("wash_9_latrines_20_personnes",
          "sante_4_1_violence","sante_4_2_violence","sante_4_3_violence","sante_4_4_violence",
          "nut_1_malnutrition", "nut_2_malnutrition_centre", "nut_4_malnutrition_deces",
          "protect_1_handicap_enfant", "protect_1_handicap_adulte",
-         "protect_2", "protect_3", "protect_4", "protect_7", "protect_9", "protect_10",
+         "protect_2", "protect_3", "protect_4", "protect_7", "protect_10",
          "protect_11_1", "protect_11_2", "protect_11_3", "protect_11_4")
 
 # applying aggregation to questions
@@ -304,6 +346,14 @@ loc_satisf <- d_f %>%
   group_by(info_prefecture,info_sous_prefecture, info_commune, info_loc_H2R)%>%
   summarize_all(satisf_decideType, type = quo(type_contact))
 
+ques_prop <- c("protect_9")
+
+#Satisfaction question
+loc_prop <- d_f %>%
+  select(ques_loc,ques_prop, type_contact)%>%
+  group_by(info_prefecture,info_sous_prefecture, info_commune, info_loc_H2R)%>%
+  summarize_all(prop_decideType, type = quo(type_contact))
+
 # Identifying integer
 integer_ques <- form_survey[form_survey$type %in% c("integer", "decimal", "calculate"),"name"]
 
@@ -311,6 +361,8 @@ loc_integer <- d_f%>%
   select(ques_loc, integer_ques, type_contact )%>%
   group_by(info_prefecture,info_sous_prefecture, info_commune, info_loc_H2R)%>%
   summarize_all(integer_decideType, type = quo(type_contact))
+
+
 
 # Already analysed columns
 dejaTraite_col <- unique(c( names(loc_satisf), names(loc_lcs), names(loc_Oui), names(loc_Non), names(loc_integer)))

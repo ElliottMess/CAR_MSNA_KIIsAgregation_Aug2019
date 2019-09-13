@@ -1,0 +1,10 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+input/Dataset pour script_MC.xlsx
+input/MSNA_H2R_dataset_100919.csv
+input/MSNA_H2R_dataset_100919.xlsm
+input/Questionnaire_Kobo__MSNA_ki_MF_MP_1108 - FINAL_v2_choices.csv
+input/Questionnaire_Kobo__MSNA_ki_MF_MP_1108 - FINAL_v2_survey.csv
+output/REACH_CAR_MSNA_AggregatedKIs_cleanedData_20180913.csv
