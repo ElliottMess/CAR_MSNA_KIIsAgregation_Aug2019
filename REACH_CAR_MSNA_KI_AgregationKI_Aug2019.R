@@ -24,16 +24,8 @@ aok_oui <- function(x) {
   else if("n/a" %in% x) {
     return("n/a")
   }
-  else {
-    result <- as.character(ux[which.max(tabulate(match(x, ux)))]) ## This occurs if no tie, so we return the value which has max value! Wambam.
-    if(is.na(result)){## If the most picked choice is a skip logic, we go to the next one.
-      return("No result")
-    }else if(result !="SL"){
-      return(result)
-    }else{
-      x <- x[x!="SL"]
-      aok_oui(x)
-    }
+  else{
+    return("")
   }
 }
 # Function to decide how the ties are dealt with between type of respondents.
@@ -42,22 +34,29 @@ aok_oui <- function(x) {
 ## Remote contact and others (autre) are last
 
 oui_decideType <- function(x, type) {
-  ux <- unique(x[!is.na(x)]) #getting unique choices
-  utype <- unique(type[!is.na(type)]) #getting unique type of respondents
-  
-  if (length(which(tabulate(match(x, ux)) == max(tabulate(match(x, ux))))) > 1) { # Checks that there is a tie
-    tab <- tabulate(match(type, utype)) #list all ties
-    if("habitant" %in% utype[tab == max(tab)]){ 
-      aok_oui(filter(data.frame(x, type), type == "habitant") %>% select(x)) # apply aggregate function
+  df_x <- data.frame(x=x,type=type)
+  df_x <- df_x[x!="SL",]
+  x <- df_x$x
+  type <- df_x$type
+  if(length(x)==0){
+    x <- "No response"
+  }
+  ux <- unique(x[!is.na(x)])
+  utype <- unique(type[!is.na(type)])
+  if (length(which(tabulate(match(x, ux)) == max(tabulate(match(x, ux))))) > 1) {
+    tab <- tabulate(match(type, utype))
+    if("habitant" %in% utype[tab == max(tab)]){
+      aok_oui(as.list(filter(data.frame(x, type), type == "habitant") %>% select(x))$x)
     }else if("direct_contact" %in% utype[tab == max(tab)]){
-      aok_oui(filter(data.frame(x, type), type == "direct_contact") %>% select(x)) 
+      aok_oui(as.list(filter(data.frame(x, type), type == "direct_contact") %>% select(x))$x)
     }else{
-      aok_oui(filter(data.frame(x, type), type %in% c("remote_contact", "autre")) %>% select(x))
+      aok_oui(as.list(filter(data.frame(x, type), type  %in% c("remote_contact", "autre")) %>% select(x))$x)
     }
   }
   else {
-    aok_oui(x) ## If no ties, normal decision
-  }
+      aok_oui(x) ## If no ties, normal decision
+    }
+  
 }
 
 
@@ -77,15 +76,7 @@ aok_non <- function(x) {
     return("n/a")
   }
   else {
-    result <- as.character(ux[which.max(tabulate(match(x, ux)))]) ## This occurs if no tie, so we return the value which has max value! Wambam.
-    if(is.na(result)){## If the most picked choice is a skip logic, we go to the next one.
-      return("No result")
-    }else if(result !="SL"){
-      return(result)
-    }else{
-      x <- x[x!="SL"]
-      aok_non(x)
-    }
+    return("")
   }
 }
 
@@ -94,6 +85,13 @@ aok_non <- function(x) {
 ## Direct contacts takes over other types
 ## Remote contact and others (autre) are last
 non_decideType <- function(x, type) {
+  df_x <- data.frame(x=x,type=type)
+  df_x <- df_x[x!="SL",]
+  x <- df_x$x
+  type <- df_x$type
+  if(length(x)==0){
+    x <- "No response"
+  }
   ux <- unique(x[!is.na(x)])
   utype <- unique(type[!is.na(type)])
   
@@ -101,16 +99,17 @@ non_decideType <- function(x, type) {
   if (length(which(tabulate(match(x, ux)) == max(tabulate(match(x, ux))))) > 1) {
     tab <- tabulate(match(type, utype))
     if("habitant" %in% utype[tab == max(tab)]){
-      aok_non(filter(data.frame(x, type), type == "habitant") %>% select(x))
+      aok_non(as.list(filter(data.frame(x, type), type == "habitant") %>% select(x))$x)
     }else if("direct_contact" %in% utype[tab == max(tab)]){
-      aok_non(filter(data.frame(x, type), type == "direct_contact") %>% select(x))
+      aok_non(as.list(filter(data.frame(x, type), type == "direct_contact") %>% select(x))$x)
     }else{
-      aok_non(filter(data.frame(x, type), type %in% c("remote_contact", "autre")) %>% select(x))
+      aok_non(as.list(filter(data.frame(x, type), type  %in% c("remote_contact", "autre")) %>% select(x))$x)
     }
   }
   
-  else {
-    aok_non(x) ## This occurs if no tie, so we return the value which has max value! Wambam.
+    else {
+      aok_non(x) ## This occurs if no tie, so we return the value which has max value! Wambam.
+    
   }
 }
 
@@ -122,24 +121,19 @@ aok_mode <- function(x) {
   ux <- unique(x[!is.na(x)])
   # This checks to see if we have more than one mode (a tie), return blank if so.
   if (length(which(tabulate(match(x, ux)) == max(tabulate(match(x, ux))))) > 1) {
+    if (class(x) == "logical") {
+      return(as.logical("")) # Blanks are coerced to values in logical vectors, so we specifically identify columns with TRUE/FALSE (KoBo's select multiples) and output a "logical" blank.
+    }
+    else {
       return("NC")
-  }
-  else if("nsp" %in% x) {
-    return("nsp")
-  }
-  else if("n/a" %in% x) {
-    return("n/a")
+    }
   }
   else {
-    result <- as.character(ux[which.max(tabulate(match(x, ux)))]) ## This occurs if no tie, so we return the value which has max value! Wambam.
-    if(is.na(result)){## If the most picked choice is a skip logic, we go to the next one.
-      return("No result")
-    }else if(result !="SL"){
-        return(result)
-      }else{
-        x <- x[x!="SL"]
-        aok_mode(x)
-      }
+    if(class(x) == "logical"){
+      as.logical(ux[which.max(tabulate(match(x, ux)))]) ## This occurs if no tie, so we return the value which has max value! Wambam.
+    }else{
+    as.character(ux[which.max(tabulate(match(x, ux)))]) ## This occurs if no tie, so we return the value which has max value! Wambam.
+    }
   }
 }
 
@@ -148,21 +142,29 @@ aok_mode <- function(x) {
 ## Direct contacts takes over other types
 ## Remote contact and others (autre) are last
 mode_decideType <- function(x, type) {
+  df_x <- data.frame(x=x,type=type, stringsAsFactors = F)
+  type <- df_x$type
+  df_x <- df_x[x!="SL",]
+  x <- df_x$x
+  type <- df_x$type
+  if(length(x)==0){
+    x <- "No response"
+  }
   ux <- unique(x[!is.na(x)])
   utype <- unique(type[!is.na(type)])
+  
   
   # This checks to see if we have more than one mode (a tie), return blank if so.
   if (length(which(tabulate(match(x, ux)) == max(tabulate(match(x, ux))))) > 1) {
     tab <- tabulate(match(type, utype))
     if("habitant" %in% utype[tab == max(tab)]){
-      aok_mode(filter(data.frame(x, type), type == "habitant") %>% select(x))
+      aok_mode(as.list(filter(data.frame(x, type), type == "habitant") %>% select(x))$x)
     }else if("direct_contact" %in% utype[tab == max(tab)]){
-      aok_mode(filter(data.frame(x, type), type == "direct_contact") %>% select(x))
+      aok_mode(as.list(filter(data.frame(x, type), type == "direct_contact") %>% select(x))$x)
     }else{
-      aok_mode(filter(data.frame(x, type), type %in% c("remote_contact", "autre")) %>% select(x))
+      aok_mode(as.list(filter(data.frame(x, type), type  %in% c("remote_contact", "autre")) %>% select(x))$x)
     }
-  }
-  else {
+  }else {
     aok_mode(x) ## This occurs if no tie, so we return the value which has max value! Wambam.
   }
 }
@@ -171,38 +173,18 @@ mode_decideType <- function(x, type) {
 aok_lcs <- function(x){
   if("oui" %in% x) {
     return("oui")
-  }
-  else if("non_strategie_epuisee_12_mois" %in% x) {
+  }else if("non_strategie_epuisee_12_mois" %in% x) {
     return("non_strategie_epuisee_12_mois")
-  }
-  else if("non_pas_besoin" %in% x) {
+  }else if("non_pas_besoin" %in% x) {
     return("non_pas_besoin")
-  }
-  else if("non_pertinent" %in% x) {
+  }else if("non_pertinent" %in% x) {
     return("non_pertinent")
-  }
-  else if("nsp" %in% x) {
+  }else if("nsp" %in% x) {
     return("nsp")
-  }
-  else if("n/a" %in% x) {
-    return("non_pertinent")
-  }
-  else if("nsp" %in% x) {
-    return("nsp")
-  }
-  else if("n/a" %in% x) {
+  }else if("n/a" %in% x) {
     return("n/a")
-  }
-  else {
-    result <- as.character(ux[which.max(tabulate(match(x, ux)))]) ## This occurs if no tie, so we return the value which has max value! Wambam.
-    if(is.na(result)){## If the most picked choice is a skip logic, we go to the next one.
-      return("No result")
-    }else if(result !="SL"){
-      return(result)
-    }else{
-      x <- x[x!="SL"]
-      aok_lcs(x)
-    }
+  }else {
+    return("")
   }
 }
 
@@ -211,6 +193,13 @@ aok_lcs <- function(x){
 ## Direct contacts takes over other types
 ## Remote contact and others (autre) are last
 lcs_decideType <- function(x, type) {
+  df_x <- data.frame(x=x,type=type)
+  df_x <- df_x[x!="SL",]
+  x <- as.character(df_x$x)
+  type <- df_x$type
+  if(length(x)==0){
+    x <- "No response"
+  }
   ux <- unique(x[!is.na(x)])
   utype <- unique(type[!is.na(type)])
   
@@ -218,16 +207,17 @@ lcs_decideType <- function(x, type) {
   if (length(which(tabulate(match(x, ux)) == max(tabulate(match(x, ux))))) > 1) {
     tab <- tabulate(match(type, utype))
     if("habitant" %in% utype[tab == max(tab)]){
-      aok_lcs(filter(data.frame(x, type), type == "habitant") %>% select(x))
+      aok_lcs(as.list(filter(data.frame(x, type), type == "habitant") %>% select(x))$x)
     }else if("direct_contact" %in% utype[tab == max(tab)]){
-      aok_lcs(filter(data.frame(x, type), type == "direct_contact") %>% select(x))
+      aok_lcs(as.list(filter(data.frame(x, type), type == "direct_contact") %>% select(x))$x)
     }else{
-      aok_lcs(filter(data.frame(x, type), type %in% c("remote_contact", "autre")) %>% select(x))
+      aok_lcs(as.list(filter(data.frame(x, type), type  %in% c("remote_contact", "autre")) %>% select(x))$x)
     }
   }
   else {
     aok_lcs(x) ## This occurs if no tie, so we return the value which has max value! Wambam.
   }
+  
 }
 
 #Aggregating function to pick most grave statisfaction
@@ -271,6 +261,13 @@ aok_satisf <- function(x){
 ## Direct contacts takes over other types
 ## Remote contact and others (autre) are last
 satisf_decideType <- function(x, type) {
+  df_x <- data.frame(x=x,type=type)
+  df_x <- df_x[x!="SL",]
+  x <- df_x$x
+  type <- df_x$type
+  if(length(x)==0){
+    x <- "No response"
+  }
   ux <- unique(x[!is.na(x)])
   utype <- unique(type[!is.na(type)])
   
@@ -278,11 +275,11 @@ satisf_decideType <- function(x, type) {
   if (length(which(tabulate(match(x, ux)) == max(tabulate(match(x, ux))))) > 1) {
     tab <- tabulate(match(type, utype))
     if("habitant" %in% utype[tab == max(tab)]){
-      aok_satisf(filter(data.frame(x, type), type == "habitant") %>% select(x))
+      aok_satisf(as.list(filter(data.frame(x, type), type == "habitant") %>% select(x))$x)
     }else if("direct_contact" %in% utype[tab == max(tab)]){
-      aok_satisf(filter(data.frame(x, type), type == "direct_contact") %>% select(x))
+      aok_satisf(as.list(filter(data.frame(x, type), type == "direct_contact") %>% select(x))$x)
     }else{
-      aok_satisf(filter(data.frame(x, type), type %in% c("remote_contact", "autre")) %>% select(x))
+      aok_satisf(as.list(filter(data.frame(x, type), type  %in% c("remote_contact", "autre")) %>% select(x))$x)
     }
   }
   else {
@@ -310,16 +307,8 @@ aok_prop <- function(x){
   else if("n/a" %in% x) {
     return("n/a")
   }
-  else {
-    result <- as.character(ux[which.max(tabulate(match(x, ux)))]) ## This occurs if no tie, so we return the value which has max value! Wambam.
-    if(is.na(result)){## If the most picked choice is a skip logic, we go to the next one.
-      return("No result")
-    }else if(result !="SL"){
-      return(result)
-    }else{
-      x <- x[x!="SL"]
-      aok_prop(x)
-    }
+  else{
+    return("")
   }
 }
 
@@ -328,18 +317,24 @@ aok_prop <- function(x){
 ## Direct contacts takes over other types
 ## Remote contact and others (autre) are last
 prop_decideType <- function(x, type) {
+  df_x <- data.frame(x=x,type=type)
+  df_x <- df_x[x!="SL",]
+  x <- df_x$x
+  type <- df_x$type
+  if(length(x)==0){
+    x <- "No response"
+  }
   ux <- unique(x[!is.na(x)])
   utype <- unique(type[!is.na(type)])
-  
   # This checks to see if we have more than one mode (a tie), return blank if so.
   if (length(which(tabulate(match(x, ux)) == max(tabulate(match(x, ux))))) > 1) {
     tab <- tabulate(match(type, utype))
     if("habitant" %in% utype[tab == max(tab)]){
-      aok_prop(filter(data.frame(x, type), type == "habitant") %>% select(x))
+      aok_prop(as.list(filter(data.frame(x, type), type == "habitant") %>% select(x))$x)
     }else if("direct_contact" %in% utype[tab == max(tab)]){
-      aok_prop(filter(data.frame(x, type), type == "direct_contact") %>% select(x))
+      aok_prop(as.list(filter(data.frame(x, type), type == "direct_contact") %>% select(x))$x)
     }else{
-      aok_prop(filter(data.frame(x, type), type %in% c("remote_contact", "autre")) %>% select(x))
+      aok_prop(as.list(filter(data.frame(x, type), type  %in% c("remote_contact", "autre")) %>% select(x))$x)
     }
   }else {
     aok_prop(x) ## This occurs if no tie, so we return the value which has max value! Wambam.
@@ -348,8 +343,17 @@ prop_decideType <- function(x, type) {
 
 # Function to decide how the ties are dealt with between type of respondents.
 integer_decideType <- function(x, type) {
+  df_x <- data.frame(x=x,type=type)
+  type <- df_x$type
+  df_x <- df_x[x!="SL",]
+  x <- df_x$x
+  type <- df_x$type
+  if(length(x)==0){
+    x <- "No response"
+  }
   ux <- unique(x[!is.na(x)])
   utype <- unique(type[!is.na(type)])
+  
   if(which(tabulate(match(x, ux)) == max(tabulate(match(x, ux)))) > 1) {
     tab <- tabulate(match(type, utype))
     if("habitant" %in% utype[tab == max(tab)]){
@@ -359,8 +363,7 @@ integer_decideType <- function(x, type) {
     }else{
       mean(filter(data.frame(x, type), type %in% c("remote_contact", "autre")) %>% select(x), na.rm = TRUE)
     }
-  }
-  else {
+  } else {
     mean(x, na.rm = TRUE) ## This occurs if no tie, so we return the value which has max value! Wambam.
   }
 }
@@ -386,15 +389,12 @@ col_selectMultStart <- form_survey[grepl("^select_multiple ", form_survey$type),
 col_selectMultChoice <- names(d_f)[grep("\\.", names(d_f))]
 
 # Removing useless or will-be invalid columns (uuid, etc.)
-col_Xs <- names(d_f)[grep("^X_", names(d_f))]
 d_f <- d_f %>%
   mutate_at(col_selectMultChoice, as.logical)
 
-d_f <- select(d_f, -start, -end, -today,-diviceid, -col_autres, -contains("note"), - "q0_2_enqueteur", - "q0_3_date", -col_Xs)
 
 # saving starting order
 base_colOrder <- names(d_f)
-base_colOrder <- base_colOrder[!base_colOrder %in% "type_contact"]
 
 # identifying localisation questions
 ques_loc <- c("info_prefecture","info_sous_prefecture", "info_commune", "info_loc_H2R")
@@ -457,11 +457,12 @@ loc_integer <- d_f%>%
   mutate_at(vars(-group_cols()),funs(as.numeric(str_replace(., "SL", NA_character_))))%>%
   summarize_all(integer_decideType, type = quo(type_contact))
 
+tobenottreat <- names(select(d_f, start, end, today,diviceid, col_autres, contains("note"),  "q0_2_enqueteur",  "q0_3_date", col_Xs))
 
 
 # Already analysed columns
 dejaTraite_col <- unique(c( names(loc_satisf), names(loc_lcs), names(loc_Oui), names(loc_Non), names(loc_integer)))
-dejaTraite_col <- dejaTraite_col[5:length(dejaTraite_col)]
+dejaTraite_col <- c(dejaTraite_col[5:length(dejaTraite_col)],tobenottreat) 
 
 # Identifying all equal questions 
 equal_cols <- setdiff(setdiff(names(d_f),ques_loc), dejaTraite_col)
@@ -470,9 +471,11 @@ equal_cols <- setdiff(setdiff(names(d_f),ques_loc), dejaTraite_col)
 loc_egual <- d_f %>%
   select( ques_loc, equal_cols, type_contact)%>%
   group_by(info_prefecture,info_sous_prefecture, info_commune, info_loc_H2R)%>%
-  summarize_at(vars(equal_cols), mode_decideType, type = quo(type_contact))
+  summarize_all( mode_decideType, type = quo(type_contact))
 
-        
+just_nottobetreated <- d_f%>%
+  select(tobenottreat, ques_loc)
+
 # Aggregating all frames
 loc_aggregated <- loc_egual%>%
   left_join(loc_satisf, by = c ("info_prefecture","info_sous_prefecture", "info_commune", "info_loc_H2R"))%>%
@@ -480,6 +483,10 @@ loc_aggregated <- loc_egual%>%
   left_join(loc_lcs, by = c ("info_prefecture","info_sous_prefecture", "info_commune", "info_loc_H2R"))%>%
   left_join(loc_Non, by = c ("info_prefecture","info_sous_prefecture", "info_commune", "info_loc_H2R"))%>%
   left_join(loc_Oui, by = c ("info_prefecture","info_sous_prefecture", "info_commune", "info_loc_H2R"))%>%
+  left_join(just_nottobetreated, by = c ("info_prefecture","info_sous_prefecture", "info_commune", "info_loc_H2R"))%>%
+  mutate(type_contact = NA_character_)%>%
   select(base_colOrder)
+
+
 
 write.csv(loc_aggregated, AGGREGATED_DATASET)
