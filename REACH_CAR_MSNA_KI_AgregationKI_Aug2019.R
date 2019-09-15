@@ -457,12 +457,12 @@ loc_integer <- d_f%>%
   mutate_at(vars(-group_cols()),funs(as.numeric(str_replace(., "SL", NA_character_))))%>%
   summarize_all(integer_decideType, type = quo(type_contact))
 
-tobenottreat <- names(select(d_f, start, end, today,diviceid, col_autres, contains("note"),  "q0_2_enqueteur",  "q0_3_date", col_Xs))
+#tobenottreat <- names(select(d_f, start, end, today,diviceid, col_autres, contains("note"),  "q0_2_enqueteur",  "q0_3_date", col_Xs))
 
 
 # Already analysed columns
 dejaTraite_col <- unique(c( names(loc_satisf), names(loc_lcs), names(loc_Oui), names(loc_Non), names(loc_integer)))
-dejaTraite_col <- c(dejaTraite_col[5:length(dejaTraite_col)],tobenottreat) 
+dejaTraite_col <- c(dejaTraite_col[5:length(dejaTraite_col)]) 
 
 # Identifying all equal questions 
 equal_cols <- setdiff(setdiff(names(d_f),ques_loc), dejaTraite_col)
@@ -473,8 +473,6 @@ loc_egual <- d_f %>%
   group_by(info_prefecture,info_sous_prefecture, info_commune, info_loc_H2R)%>%
   summarize_all( mode_decideType, type = quo(type_contact))
 
-just_nottobetreated <- d_f%>%
-  select(tobenottreat, ques_loc)
 
 # Aggregating all frames
 loc_aggregated <- loc_egual%>%
@@ -483,7 +481,6 @@ loc_aggregated <- loc_egual%>%
   left_join(loc_lcs, by = c ("info_prefecture","info_sous_prefecture", "info_commune", "info_loc_H2R"))%>%
   left_join(loc_Non, by = c ("info_prefecture","info_sous_prefecture", "info_commune", "info_loc_H2R"))%>%
   left_join(loc_Oui, by = c ("info_prefecture","info_sous_prefecture", "info_commune", "info_loc_H2R"))%>%
-  left_join(just_nottobetreated, by = c ("info_prefecture","info_sous_prefecture", "info_commune", "info_loc_H2R"))%>%
   mutate(type_contact = NA_character_)%>%
   select(base_colOrder)
 
