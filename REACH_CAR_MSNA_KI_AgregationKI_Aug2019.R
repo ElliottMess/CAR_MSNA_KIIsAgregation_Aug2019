@@ -1,9 +1,10 @@
 library(dplyr)
 library(tibble)
-
+library(koboquest)
 #Where the files are
 CLEANED_DATASET <- paste0("input/MSNA_H2R_dataset_100919.csv")
 FORM_SURVEY <- paste0("input/Questionnaire_Kobo__MSNA_ki_MF_MP_1108 - FINAL_v2_survey.csv")
+FORM_CHOICES <- paste0("input/Questionnaire_Kobo__MSNA_ki_MF_MP_1108 - FINAL_v2_choices.csv")
 AGGREGATED_DATASET <- paste0("output/REACH_CAR_MSNA_AggregatedKIs_cleanedData.csv")
 
 
@@ -24,7 +25,15 @@ aok_oui <- function(x) {
     return("n/a")
   }
   else {
-    return("")
+    result <- as.character(ux[which.max(tabulate(match(x, ux)))]) ## This occurs if no tie, so we return the value which has max value! Wambam.
+    if(is.na(result)){## If the most picked choice is a skip logic, we go to the next one.
+      return("No result")
+    }else if(result !="SL"){
+      return(result)
+    }else{
+      x <- x[x!="SL"]
+      aok_oui(x)
+    }
   }
 }
 # Function to decide how the ties are dealt with between type of respondents.
@@ -68,7 +77,15 @@ aok_non <- function(x) {
     return("n/a")
   }
   else {
-    return("")
+    result <- as.character(ux[which.max(tabulate(match(x, ux)))]) ## This occurs if no tie, so we return the value which has max value! Wambam.
+    if(is.na(result)){## If the most picked choice is a skip logic, we go to the next one.
+      return("No result")
+    }else if(result !="SL"){
+      return(result)
+    }else{
+      x <- x[x!="SL"]
+      aok_non(x)
+    }
   }
 }
 
@@ -105,12 +122,7 @@ aok_mode <- function(x) {
   ux <- unique(x[!is.na(x)])
   # This checks to see if we have more than one mode (a tie), return blank if so.
   if (length(which(tabulate(match(x, ux)) == max(tabulate(match(x, ux))))) > 1) {
-    if (class(x) == "logical") {
-      return(as.logical("")) # Blanks are coerced to values in logical vectors, so we specifically identify columns with TRUE/FALSE (KoBo's select multiples) and output a "logical" blank.
-    }
-    else {
       return("NC")
-    }
   }
   else if("nsp" %in% x) {
     return("nsp")
@@ -119,9 +131,16 @@ aok_mode <- function(x) {
     return("n/a")
   }
   else {
-    ux[which.max(tabulate(match(x, ux)))] ## This occurs if no tie, so we return the value which has max value! Wambam.
+    result <- as.character(ux[which.max(tabulate(match(x, ux)))]) ## This occurs if no tie, so we return the value which has max value! Wambam.
+    if(is.na(result)){## If the most picked choice is a skip logic, we go to the next one.
+      return("No result")
+    }else if(result !="SL"){
+        return(result)
+      }else{
+        x <- x[x!="SL"]
+        aok_mode(x)
+      }
   }
-  
 }
 
 # Function to decide how the ties are dealt with between type of respondents.
@@ -175,7 +194,15 @@ aok_lcs <- function(x){
     return("n/a")
   }
   else {
-    return("")
+    result <- as.character(ux[which.max(tabulate(match(x, ux)))]) ## This occurs if no tie, so we return the value which has max value! Wambam.
+    if(is.na(result)){## If the most picked choice is a skip logic, we go to the next one.
+      return("No result")
+    }else if(result !="SL"){
+      return(result)
+    }else{
+      x <- x[x!="SL"]
+      aok_lcs(x)
+    }
   }
 }
 
@@ -227,7 +254,15 @@ aok_satisf <- function(x){
     return("n/a")
   }
   else {
-    return("")
+    result <- as.character(ux[which.max(tabulate(match(x, ux)))]) ## This occurs if no tie, so we return the value which has max value! Wambam.
+    if(is.na(result)){## If the most picked choice is a skip logic, we go to the next one.
+      return("No result")
+    }else if(result !="SL"){
+      return(result)
+    }else{
+      x <- x[x!="SL"]
+      aok_lcs(x)
+    }
   }
 }
 
@@ -276,7 +311,15 @@ aok_prop <- function(x){
     return("n/a")
   }
   else {
-    return("")
+    result <- as.character(ux[which.max(tabulate(match(x, ux)))]) ## This occurs if no tie, so we return the value which has max value! Wambam.
+    if(is.na(result)){## If the most picked choice is a skip logic, we go to the next one.
+      return("No result")
+    }else if(result !="SL"){
+      return(result)
+    }else{
+      x <- x[x!="SL"]
+      aok_prop(x)
+    }
   }
 }
 
@@ -298,8 +341,7 @@ prop_decideType <- function(x, type) {
     }else{
       aok_prop(filter(data.frame(x, type), type %in% c("remote_contact", "autre")) %>% select(x))
     }
-  }
-  else {
+  }else {
     aok_prop(x) ## This occurs if no tie, so we return the value which has max value! Wambam.
   }
 }
@@ -308,7 +350,7 @@ prop_decideType <- function(x, type) {
 integer_decideType <- function(x, type) {
   ux <- unique(x[!is.na(x)])
   utype <- unique(type[!is.na(type)])
-  if (length(which(tabulate(match(x, ux)) == max(tabulate(match(x, ux))))) > 1) {
+  if(which(tabulate(match(x, ux)) == max(tabulate(match(x, ux)))) > 1) {
     tab <- tabulate(match(type, utype))
     if("habitant" %in% utype[tab == max(tab)]){
       mean(filter(data.frame(x, type), type == "habitant") %>% select(x), na.rm = TRUE)
@@ -325,7 +367,17 @@ integer_decideType <- function(x, type) {
 
 #Reading data and form
 d_f <- read.csv(CLEANED_DATASET, stringsAsFactors = FALSE, skipNul = TRUE)
-form_survey <- read.delim(FORM_SURVEY, sep= ";", stringsAsFactors = FALSE, skipNul = TRUE)
+form_survey <- read.csv(FORM_SURVEY, stringsAsFactors = FALSE, skipNul = TRUE)
+form_choices <- read.csv(FORM_CHOICES, stringsAsFactors = FALSE, skipNul = TRUE)
+names_df <- names(d_f)
+
+identify_skipped <- function(question.name, data){
+  data[which(data[,question.name] == ""), question.name] <- "SL"
+  return(data[,question.name])
+}
+
+d_f <- as.data.frame(lapply(names(d_f), identify_skipped,  data = d_f))
+names(d_f) <- names_df
 
 #removing "other" (autre) columns
 col_autres <- form_survey[form_survey$type == "text" & grepl("_autre",form_survey$name), "name"]
@@ -402,6 +454,7 @@ integer_ques <- form_survey[form_survey$type %in% c("integer", "decimal", "calcu
 loc_integer <- d_f%>%
   select(ques_loc, integer_ques, type_contact )%>%
   group_by(info_prefecture,info_sous_prefecture, info_commune, info_loc_H2R)%>%
+  mutate_at(vars(-group_cols()),funs(as.numeric(str_replace(., "SL", NA_character_))))%>%
   summarize_all(integer_decideType, type = quo(type_contact))
 
 
@@ -417,7 +470,7 @@ equal_cols <- setdiff(setdiff(names(d_f),ques_loc), dejaTraite_col)
 loc_egual <- d_f %>%
   select( ques_loc, equal_cols, type_contact)%>%
   group_by(info_prefecture,info_sous_prefecture, info_commune, info_loc_H2R)%>%
-  summarize_all(mode_decideType, type = quo(type_contact))
+  summarize_at(vars(equal_cols), mode_decideType, type = quo(type_contact))
 
         
 # Aggregating all frames
